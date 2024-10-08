@@ -2,4 +2,11 @@
     <string name="app_name">Chat App</string>
     <string name="image">image</string>
     <string name="credit">Developed By X Neutral</string>
+    <string name="login">Login</string>
+    <string name="enter_email">Enter Email</string>
+    <string name="enter_username">Enter UserName</string>
+    <string name="enter_pass">Enter Password</string>
+    <string name="click_to_register">Click to Register</string>
+    <string name="click_to_login">Click to Login</string>
+    <string name="register">Register</string>
 </resources>
