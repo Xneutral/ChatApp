@@ -18,8 +18,7 @@ import com.rashid.chatapp.R
 import com.rashid.chatapp.adapters.GroupListAdapter
 import com.rashid.chatapp.databinding.FragmentGroupListBinding
 import com.rashid.chatapp.helper.Constants
-import com.rashid.chatapp.model.GroupChatRoom
-import com.rashid.chatapp.model.User
+import com.rashid.chatapp.model.ChatModel
 
 
 class GroupListFragment : Fragment() {
@@ -43,7 +42,7 @@ class GroupListFragment : Fragment() {
         handleClickListener()
     }
 
-    val newGroupFragment = NewGroupFragment()
+    private val newGroupFragment = NewGroupFragment()
 
     private fun handleClickListener() {
         binding.newGroup.setOnClickListener {
@@ -60,12 +59,12 @@ class GroupListFragment : Fragment() {
         val query: Query = firestore
             .collection(Constants.GroupsPath)
 
-        val options: FirestoreRecyclerOptions<GroupChatRoom> = FirestoreRecyclerOptions.Builder<GroupChatRoom>()
-            .setQuery(query, GroupChatRoom::class.java)
+        val options: FirestoreRecyclerOptions<ChatModel.GroupChatRoom> = FirestoreRecyclerOptions.Builder<ChatModel.GroupChatRoom>()
+            .setQuery(query, ChatModel.GroupChatRoom::class.java)
             .build()
 
         binding.groupListRv.layoutManager = LinearLayoutManager(context)
-        val groupListAdapter = GroupListAdapter(options)
+        val groupListAdapter = GroupListAdapter(requireContext(),options)
         binding.groupListRv.adapter = groupListAdapter
 
         groupListAdapter.startListening()

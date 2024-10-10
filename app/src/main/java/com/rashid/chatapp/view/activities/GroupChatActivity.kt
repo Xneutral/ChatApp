@@ -14,30 +14,27 @@ import com.google.firebase.firestore.Query
 import com.google.gson.Gson
 import com.rashid.chatapp.R
 import com.rashid.chatapp.adapters.ChatMessageAdapter
-import com.rashid.chatapp.databinding.ActivityChatBinding
+import com.rashid.chatapp.databinding.ActivityGroupChatBinding
 import com.rashid.chatapp.helper.Constants
 import com.rashid.chatapp.helper.FirebaseUtil
 import com.rashid.chatapp.model.ChatMessage
 import com.rashid.chatapp.model.ChatModel
 import com.rashid.chatapp.model.User
 
+class GroupChatActivity : AppCompatActivity() {
 
-class ChatActivity : AppCompatActivity() {
-
-    private lateinit var binding : ActivityChatBinding
+    private lateinit var binding : ActivityGroupChatBinding
 
     lateinit var firestore: FirebaseFirestore
-    lateinit var chatMessageAdapter: ChatMessageAdapter
+    private lateinit var chatMessageAdapter: ChatMessageAdapter
 
-    var otherUser : User? = null
-    var chatRoomModel : ChatModel.ChatRoom? = null
-    var chatRoomId : String = ""
-
+    var groupChatModel : ChatModel.GroupChatRoom? = null
+    private var groupId : String = ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        binding =  ActivityChatBinding.inflate(layoutInflater)
+        binding = ActivityGroupChatBinding.inflate(layoutInflater)
         setContentView(binding.root)
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
@@ -48,12 +45,11 @@ class ChatActivity : AppCompatActivity() {
         firestore = FirebaseFirestore.getInstance()
         setupUI()
         handleClickListener()
-        setupRV()
     }
 
     private fun setupRV() {
-        val query: Query = firestore.collection(Constants.ChatRoomPath)
-            .document(chatRoomId)
+        val query: Query = firestore.collection(Constants.GroupsPath)
+            .document(groupId)
             .collection(Constants.ChatsPath)
             .orderBy("timestamp", Query.Direction.DESCENDING)
 
@@ -61,18 +57,18 @@ class ChatActivity : AppCompatActivity() {
             FirestoreRecyclerOptions.Builder<ChatMessage>()
                 .setQuery(query, ChatMessage::class.java).build()
 
-        chatMessageAdapter = ChatMessageAdapter(options, false)
+        chatMessageAdapter = ChatMessageAdapter(options,true)
 
         chatMessageAdapter.startListening()
         chatMessageAdapter.registerAdapterDataObserver(object : AdapterDataObserver() {
             override fun onItemRangeInserted(positionStart: Int, itemCount: Int) {
                 super.onItemRangeInserted(positionStart, itemCount)
-                binding.chatRv.smoothScrollToPosition(0)
+                binding.groupChatRv.smoothScrollToPosition(0)
             }
         })
 
-        binding.chatRv.layoutManager = LinearLayoutManager(this,LinearLayoutManager.VERTICAL,true)
-        binding.chatRv.adapter = chatMessageAdapter
+        binding.groupChatRv.layoutManager = LinearLayoutManager(this, LinearLayoutManager.VERTICAL,true)
+        binding.groupChatRv.adapter = chatMessageAdapter
 
         chatMessageAdapter.startListening()
     }
@@ -89,17 +85,18 @@ class ChatActivity : AppCompatActivity() {
     }
 
     private fun sendMessage(message: String) {
-        chatRoomModel?.lastMessage = message
-        chatRoomModel?.lastMessageSenderId = FirebaseUtil.currentUserId!!
+        groupChatModel?.lastMessage = message
+        groupChatModel?.lastMessageSenderId = FirebaseUtil.currentUserId!!
+        groupChatModel?.timestamp = Timestamp.now()
 
-        firestore.collection(Constants.ChatRoomPath)
-            .document(chatRoomId)
-            .set(chatRoomModel!!)
+        firestore.collection(Constants.GroupsPath)
+            .document(groupId)
+            .set(groupChatModel!!)
 
-        val chatMessage = ChatMessage(message,FirebaseUtil.currentUserId, Timestamp.now())
+        val chatMessage = ChatMessage(message, FirebaseUtil.currentUserId, Timestamp.now())
         firestore
-            .collection(Constants.ChatRoomPath)
-            .document(chatRoomId)
+            .collection(Constants.GroupsPath)
+            .document(groupId)
             .collection(Constants.ChatsPath)
             .add(chatMessage)
             .addOnCompleteListener { task ->
@@ -110,33 +107,18 @@ class ChatActivity : AppCompatActivity() {
     }
 
     private fun setupUI() {
-        val userString = intent.getStringExtra(Constants.userModel) ?: return
-        otherUser = Gson().fromJson(userString, User::class.java)
-        binding.otherUserNameTv.text = otherUser?.userName
-        chatRoomId = FirebaseUtil.getUniqueChatRoomId(FirebaseUtil.currentUserId!!,otherUser?.uid!!)
-        getOrCreateChatRoom()
-    }
-
-    private fun getOrCreateChatRoom(){
-        firestore.collection(Constants.ChatRoomPath)
-            .document(chatRoomId)
+        groupId =  intent.getStringExtra(Constants.groupId)?: return
+        firestore.collection(Constants.GroupsPath)
+            .document(groupId)
             .get()
             .addOnCompleteListener { task ->
-                chatRoomModel = task.result.toObject(ChatModel.ChatRoom::class.java)
-                if (chatRoomModel == null){
-                    chatRoomModel = ChatModel.ChatRoom(
-                        chatRoomId = chatRoomId,
-                        userIds = listOf(FirebaseUtil.currentUserId!!, otherUser?.uid!!),
-                        timestamp = Timestamp.now(),
-                        lastMessage = "",
-                        lastMessageSenderId = ""
-                    )
-                    firestore.collection(Constants.ChatRoomPath)
-                        .document(chatRoomId)
-                        .set(chatRoomModel!!)
-                }
+                groupChatModel = task.result.toObject(ChatModel.GroupChatRoom::class.java)
+                firestore.collection(Constants.GroupsPath)
+                    .document(groupId)
+                    .set(groupChatModel!!)
+
+                binding.groupNameTv.text = groupChatModel?.groupName
+                setupRV()
             }
     }
-
-
 }

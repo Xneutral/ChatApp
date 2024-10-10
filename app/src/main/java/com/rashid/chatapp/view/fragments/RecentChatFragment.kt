@@ -14,8 +14,9 @@ import com.rashid.chatapp.adapters.RecentChatAdapter
 import com.rashid.chatapp.databinding.FragmentRecentChatBinding
 import com.rashid.chatapp.helper.Constants
 import com.rashid.chatapp.helper.FirebaseUtil
-import com.rashid.chatapp.model.ChatRoom
+import com.rashid.chatapp.model.ChatModel
 import com.rashid.chatapp.view.activities.ChatActivity
+import com.rashid.chatapp.view.activities.GroupChatActivity
 
 
 class RecentChatFragment : Fragment() {
@@ -42,20 +43,45 @@ class RecentChatFragment : Fragment() {
         val query = firestore.collection(Constants.ChatRoomPath)
             .whereArrayContains("userIds",FirebaseUtil.currentUserId!!)
 
-        val options: FirestoreRecyclerOptions<ChatRoom> =
-            FirestoreRecyclerOptions.Builder<ChatRoom>()
-                .setQuery(query, ChatRoom::class.java).build()
+//        val options: FirestoreRecyclerOptions<ChatModel.ChatRoom> =
+//            FirestoreRecyclerOptions.Builder<ChatModel.ChatRoom>()
+//                .setQuery(query, ChatModel.ChatRoom::class.java).build()
+        val query_one = firestore.collection(Constants.GroupsPath)
+            .whereArrayContains("userIds", FirebaseUtil.currentUserId)
 
-        recentChatAdapter = RecentChatAdapter(requireContext(),options){ user ->
-            val intent = Intent(requireContext(), ChatActivity::class.java)
-            val userString = Gson().toJson(user)
-            intent.putExtra(Constants.userModel, userString)
-            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            startActivity(intent)
+        query.get().addOnSuccessListener { collectionOneSnapshot  ->
+            if (!isAdded) return@addOnSuccessListener
+            query_one.get().addOnSuccessListener { collectionTwoSnapshot ->
+                if (!isAdded) return@addOnSuccessListener
+                val mergedData = mutableListOf<ChatModel>()
+                mergedData.addAll(collectionOneSnapshot.toObjects(ChatModel.ChatRoom::class.java))
+                mergedData.addAll(collectionTwoSnapshot.toObjects(ChatModel.GroupChatRoom::class.java))
+
+                recentChatAdapter = RecentChatAdapter(requireContext(),mergedData){ user, isGroupChat, groupId ->
+                    if (!isGroupChat){
+                        val intent = Intent(requireContext(), ChatActivity::class.java)
+                        val userString = Gson().toJson(user)
+                        intent.putExtra(Constants.userModel, userString)
+                        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        startActivity(intent)
+                    }else{
+                        val intent = Intent(requireContext(), GroupChatActivity::class.java)
+                        intent.putExtra(Constants.groupId, groupId)
+                        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        startActivity(intent)
+                    }
+                }
+                binding.recentChatsRv.layoutManager = LinearLayoutManager(context)
+                binding.recentChatsRv.adapter = recentChatAdapter
+            }
         }
-        binding.recentChatsRv.layoutManager = LinearLayoutManager(context)
-        binding.recentChatsRv.adapter = recentChatAdapter
-        recentChatAdapter.startListening()
+
+//        recentChatAdapter.startListening()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        setupRV()
     }
 
 }

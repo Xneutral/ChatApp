@@ -14,7 +14,7 @@ import com.rashid.chatapp.adapters.UserSelectionAdapter
 import com.rashid.chatapp.databinding.FragmentNewGroupBinding
 import com.rashid.chatapp.helper.Constants
 import com.rashid.chatapp.helper.FirebaseUtil
-import com.rashid.chatapp.model.GroupChatRoom
+import com.rashid.chatapp.model.ChatModel
 import com.rashid.chatapp.model.User
 
 class NewGroupFragment : Fragment() {
@@ -69,7 +69,7 @@ class NewGroupFragment : Fragment() {
             }
             val userList = userSelectionAdapter?.getSelectedUser()
             userList?.add(FirebaseUtil.currentUserId!!)
-            val groupChatRoom = GroupChatRoom(
+            val groupChatRoom = ChatModel.GroupChatRoom(
                 groupName = binding.groupNameEt.text.toString(),
                 userIds = userList!!,
                 lastMessage = "",
